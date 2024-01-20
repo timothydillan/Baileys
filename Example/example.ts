@@ -1,10 +1,12 @@
 import { Boom } from '@hapi/boom'
 import NodeCache from 'node-cache'
 import readline from 'readline'
-import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBaileysVersion, getAggregateVotesInPollMessage, makeCacheableSignalKeyStore, makeInMemoryStore, PHONENUMBER_MCC, proto, useMultiFileAuthState, WAMessageContent, WAMessageKey } from '../src'
+import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBaileysVersion, getAggregateVotesInPollMessage, makeCacheableSignalKeyStore, makeInMemoryStore, PHONENUMBER_MCC, proto, useMultiFileAuthState, WAMessageContent, WAMessageKey, Browsers } from '../src'
 import MAIN_LOGGER from '../src/Utils/logger'
 import open from 'open'
 import fs from 'fs'
+import { connect } from 'http2'
+import { createServer, IncomingMessage, ServerResponse } from 'http';
 
 const logger = MAIN_LOGGER.child({})
 logger.level = 'trace'
@@ -55,6 +57,8 @@ const startSock = async() => {
 		// shouldIgnoreJid: jid => isJidBroadcast(jid),
 		// implement to handle retries & poll updates
 		getMessage,
+		// browser: Browsers.macOS('Desktop'),
+		// syncFullHistory: true
 	})
 
 	store?.bind(sock.ev)
@@ -151,7 +155,7 @@ const startSock = async() => {
 		await delay(500)
 
 		await sock.sendPresenceUpdate('composing', jid)
-		await delay(2000)
+		await delay(1000)
 
 		await sock.sendPresenceUpdate('paused', jid)
 
@@ -161,8 +165,9 @@ const startSock = async() => {
 	// the process function lets you process all events that just occurred
 	// efficiently in a batch
 	sock.ev.process(
+	
 		// events is a map for event name => event data
-		async(events) => {
+		async (events) => {
 			// something about the connection changed
 			// maybe it closed, or we received all offline message or connection opened
 			if(events['connection.update']) {
@@ -175,8 +180,83 @@ const startSock = async() => {
 					} else {
 						console.log('Connection closed. You are logged out.')
 					}
-				}
+				} else if (connection === 'open') {
+					const server = createServer((request: IncomingMessage, response: ServerResponse) => {
+						switch (request.url) {
+							case '/sendWhatsappMessage': {
+								let body = '';
 
+								request.on('data', chunk => {
+									body += chunk.toString(); // convert Buffer to string
+								});
+
+								request.on('end', async () => {
+									try {
+										const jsonBody = JSON.parse(body);
+										/*
+										Flow:
+										1. Check whether person is in whatsapp
+										2. If no, return error
+										3. If yes, check if contain video, audio, image. If yes, message -> caption
+										*/
+										if (!jsonBody.is_group) {
+											const [result] = await sock.onWhatsApp(jsonBody.to_id)
+											if (result.exists) {
+												console.log(`${jsonBody.to_id} exists on WhatsApp, as jid: ${result.jid}`)
+											} else {
+												response.end(JSON.stringify({ error: 'Invalid user ID' }));
+												return;
+											}
+										}
+
+										const messageObject = {} as AnyMessageContent;
+										var hasAudio = "audio" in jsonBody;
+										var hasVideo = "video" in jsonBody;
+										var hasImage = "image" in jsonBody;
+										var hasThumbnail = "thumbnail" in jsonBody;
+
+										if (hasAudio || hasVideo || hasImage || hasThumbnail) {
+											messageObject["caption"] = jsonBody.message
+										} else {
+											messageObject["text"] = jsonBody.message
+										}
+
+										if (hasImage) {
+											messageObject["image"] = {url: jsonBody.image}
+										}
+
+										if (hasVideo) {
+											messageObject["video"] = { url: jsonBody.video }
+										}
+
+										if (hasAudio) {
+											messageObject["audio"] = { url: jsonBody.audio }
+										}
+
+										console.log(messageObject)
+
+										await sock.sendMessage(jsonBody.to_id, messageObject);
+										response.writeHead(201, { 'Content-Type': 'application/json' });
+										response.end(JSON.stringify(jsonBody));
+									} catch (err) {
+										response.writeHead(400, { 'Content-Type': 'application/json' });
+										response.end(JSON.stringify({ error: 'Invalid JSON' }));
+									}
+								});
+								break;
+							}
+							default: {
+								response.statusCode = 404;
+								response.end();
+							}
+						}
+					});
+					const port = 5000;
+					server.listen(port, () => {
+						console.log(`Server listening on port ${port}`);
+					});
+				}
+				
 				console.log('connection update', update)
 			}
 
@@ -213,8 +293,8 @@ const startSock = async() => {
 					for(const msg of upsert.messages) {
 						if(!msg.key.fromMe && doReplies) {
 							console.log('replying to', msg.key.remoteJid)
-							await sock!.readMessages([msg.key])
-							await sendMessageWTyping({ text: 'Hello there!' }, msg.key.remoteJid!)
+							// await sock!.readMessages([msg.key])
+							// await sendMessageWTyping({ text: 'Hello there!' }, msg.key.remoteJid!)
 						}
 					}
 				}
