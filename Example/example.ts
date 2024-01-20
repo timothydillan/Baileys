@@ -89,7 +89,7 @@ const startSock = async () => {
 		// shouldIgnoreJid: jid => isJidBroadcast(jid),
 		// implement to handle retries & poll updates
 		getMessage,
-		// browser: Browsers.macOS('Desktop'),
+		browser: Browsers.macOS('Desktop'),
 		// syncFullHistory: true
 	})
 
@@ -264,9 +264,9 @@ const startSock = async () => {
 										var hasAudio = "audio" in jsonBody;
 										var hasVideo = "video" in jsonBody;
 										var hasImage = "image" in jsonBody;
-										var hasThumbnail = "thumbnail" in jsonBody;
+										var hasDocument = "document" in jsonBody;
 
-										if (hasAudio || hasVideo || hasImage || hasThumbnail) {
+										if (hasAudio || hasVideo || hasImage || hasDocument) {
 											messageObject["caption"] = jsonBody.message
 										} else {
 											messageObject["text"] = jsonBody.message
@@ -282,6 +282,10 @@ const startSock = async () => {
 
 										if (hasAudio) {
 											messageObject["audio"] = { url: jsonBody.audio }
+										}
+
+										if (hasDocument) {
+											messageObject["document"] = { url: jsonBody.document }
 										}
 
 										console.log(messageObject)
