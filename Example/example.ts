@@ -245,6 +245,10 @@ const startSock = async() => {
 								});
 								break;
 							}
+							case '/healthcheck': {
+								response.writeHead(200, { 'Content-Type': 'application/json' });
+								response.end(JSON.stringify({"status": "healthy"}));
+							}
 							default: {
 								response.statusCode = 404;
 								response.end();
