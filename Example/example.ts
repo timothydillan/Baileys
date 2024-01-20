@@ -224,6 +224,8 @@ const startSock = async () => {
 					}
 				} else if (connection === 'open') {
 					isWhatsAppConnected = true;
+					sendTelegramMessage("[WhatsApp Server] Connected.");
+
 					const server = createServer((request: IncomingMessage, response: ServerResponse) => {
 						if (!isWhatsAppConnected) {
 							response.writeHead(503, { 'Content-Type': 'application/json' });
