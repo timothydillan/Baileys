@@ -291,7 +291,7 @@ const startSock = async () => {
 										console.log(messageObject)
 
 										await sock.sendMessage(jsonBody.to_id, messageObject);
-										response.writeHead(201, { 'Content-Type': 'application/json' });
+										response.writeHead(200, { 'Content-Type': 'application/json' });
 										response.end(JSON.stringify(jsonBody));
 									} catch (err) {
 										response.writeHead(400, { 'Content-Type': 'application/json' });
