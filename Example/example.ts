@@ -238,6 +238,7 @@ const startSock = async () => {
 						var hasImage = "image" in jsonBody;
 						var hasDocument = "document" in jsonBody;
 						var hasFileName = "file_name" in jsonBody;
+						var hasMentions = "mentions" in jsonBody;
 
 						if (hasAudio || hasVideo || hasImage || hasDocument) {
 							messageObject["caption"] = jsonBody.message
@@ -263,6 +264,10 @@ const startSock = async () => {
 
 						if (hasFileName) {
 							messageObject["fileName"] = jsonBody.file_name
+						}
+
+						if (hasMentions) {
+							messageObject["mentions"] = jsonBody.mentions
 						}
 
 						console.log(messageObject)
