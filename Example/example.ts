@@ -198,7 +198,7 @@ const startSock = async () => {
 
 	sendTelegramMessage("[WhatsApp Server] Starting up...");
 
-	const server = createServer((request: IncomingMessage, response: ServerResponse) => {
+	const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
 		if (!isWhatsAppConnected) {
 			response.writeHead(503, { 'Content-Type': 'application/json' });
 			response.end(JSON.stringify({ error: 'WhatsApp connection is not available' }));
@@ -207,22 +207,13 @@ const startSock = async () => {
 
 		switch (request.url) {
 			case '/getContactsAndGroups': {
-				request.on('end', async () => {
-					try {
-						// Fetching all groups where the user is a participant
-						const groups = await sock.groupFetchAllParticipating();
-						console.log(groups)
-						for (const groupJID in groups) {
-							console.log(`Group ID: ${groupJID}, Name: ${groups[groupJID].subject}`)
-						}
-
-						response.writeHead(200, { 'Content-Type': 'application/json' });
-						response.end(JSON.stringify({ "contacts": store?.contacts, "groups": groups }));
-					} catch (err) {
-						response.writeHead(400, { 'Content-Type': 'application/json' });
-						response.end(JSON.stringify({ error: 'Invalid JSON' }));
-					}
-				});
+				try {
+					response.writeHead(200, { 'Content-Type': 'application/json' });
+					response.end(JSON.stringify({ "contacts": store?.contacts }));
+				} catch {
+					response.writeHead(400, { 'Content-Type': 'application/json' });
+					response.end(JSON.stringify({ error: 'Invalid JSON' }));
+				}
 				break;
 			}
 			case '/sendWhatsappMessage': {
