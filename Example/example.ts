@@ -275,7 +275,9 @@ const startSock = async () => {
 						}
 
 						if (hasDocument) {
-							messageObject["document"] = { url: jsonBody.document }
+							messageObject["document"] = { url: jsonBody.document, mimetype: jsonBody.mime_type, fileName: jsonBody.file_name }
+							messageObject["mimetype"] = jsonBody.mime_type;
+							messageObject["fileName"] = jsonBody.file_name;
 						}
 
 						if (hasFileName) {
