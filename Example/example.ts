@@ -208,6 +208,12 @@ const startSock = async () => {
 		switch (request.url) {
 			case '/getContactsAndGroups': {
 				try {
+					// const groups = await sock.groupFetchAllParticipating();
+					// console.log(groups)
+					// for (const groupJID in groups) {
+					// 	console.log(`Group ID: ${groupJID}, Name: ${groups[groupJID].subject}`)
+					// }
+
 					response.writeHead(200, { 'Content-Type': 'application/json' });
 					response.end(JSON.stringify({ "contacts": store?.contacts }));
 				} catch {
