@@ -23,7 +23,7 @@ import {
 	xmppPreKey,
 	xmppSignedPreKey
 } from '../Utils'
-import { cleanMessage } from '../Utils'
+import { cleanMessage, BufferJSON } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import {
 	areJidsSameUser,
@@ -686,13 +686,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleMessage = async(node: BinaryNode) => {
-		if(getBinaryNodeChild(node, 'unavailable') && !getBinaryNodeChild(node, 'enc')) {
-			// "missing message from node" fix
-			logger.debug(node, 'missing body; sending ack then ignoring.')
-			await sendMessageAck(node)
-			return
-		}
-
 		const { fullMessage: msg, category, author, decrypt } = decryptMessageNode(
 			node,
 			authState.creds.me!.id,
@@ -700,6 +693,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			signalRepository,
 			logger,
 		)
+
+		if(msg.messageStubParameters && msg.messageStubParameters[0] === 'Message absent from node') {
+			await sendMessageAck(JSON.parse(msg.messageStubParameters[1], BufferJSON.reviver))
+		}
 
 		if(msg.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER) {
 			if(node.attrs.sender_pn) {
