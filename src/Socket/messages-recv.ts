@@ -694,10 +694,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			logger,
 		)
 
-		if(msg.messageStubParameters && msg.messageStubParameters[0] === 'Message absent from node') {
-			await sendMessageAck(JSON.parse(msg.messageStubParameters[1], BufferJSON.reviver))
-		}
-
 		if(msg.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER) {
 			if(node.attrs.sender_pn) {
 				ev.emit('chats.phoneNumberShare', { lid: node.attrs.from, jid: node.attrs.sender_pn })
@@ -762,6 +758,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			),
 			sendMessageAck(node)
 		])
+		if(msg.messageStubParameters && msg.messageStubParameters[0] === 'Message absent from node') {
+			await sendMessageAck(JSON.parse(msg.messageStubParameters[1], BufferJSON.reviver))
+		}
 	}
 
 	const handleCall = async(node: BinaryNode) => {
